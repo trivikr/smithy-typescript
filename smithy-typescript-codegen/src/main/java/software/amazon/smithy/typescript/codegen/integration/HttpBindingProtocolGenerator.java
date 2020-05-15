@@ -870,6 +870,7 @@ public abstract class HttpBindingProtocolGenerator implements ProtocolGenerator 
                 // Only set a type and the members if we have output.
                 operation.getOutput().ifPresent(outputId -> {
                     writer.write("__type: $S,", outputId.getName());
+                    deserializeOutputDocument(context, operation, documentBindings);
                     readHeaders(context, operation, bindingIndex, "output");
                 });
             });
@@ -909,6 +910,7 @@ public abstract class HttpBindingProtocolGenerator implements ProtocolGenerator 
                 writer.write("name: $S,", error.getId().getName());
                 writer.write("$$fault: $S,", error.getTrait(ErrorTrait.class).get().getValue());
                 writer.write("$$metadata: deserializeMetadata($L),", outputName);
+                deserializeOutputDocument(context, error, documentBindings);
                 readHeaders(context, error, bindingIndex, outputName);
             });
 
@@ -933,7 +935,6 @@ public abstract class HttpBindingProtocolGenerator implements ProtocolGenerator 
             writer.write("const data: any = $L;", getErrorBodyLocation(context, "parsedOutput.body"));
             List<HttpBinding> responseBindings = bindingIndex.getResponseBindings(error, Location.DOCUMENT);
             responseBindings.sort(Comparator.comparing(HttpBinding::getMemberName));
-            deserializeOutputDocument(context, error, responseBindings);
             return responseBindings;
         } else {
             // Deserialize response body just like in a normal response.
@@ -1007,8 +1008,6 @@ public abstract class HttpBindingProtocolGenerator implements ProtocolGenerator 
                 bodyLocation = getErrorBodyLocation(context, bodyLocation);
             }
             writer.write("const data: any = $L;", bodyLocation);
-
-            deserializeOutputDocument(context, operationOrError, documentBindings);
             return documentBindings;
         }
         if (!payloadBindings.isEmpty()) {
@@ -1041,9 +1040,6 @@ public abstract class HttpBindingProtocolGenerator implements ProtocolGenerator 
         if (binding.getMember().hasTrait(EventStreamTrait.class)) {
             // If payload is a event stream, return it after calling event stream deser function.
             generateEventStreamDeserializer(context, binding.getMember(), target);
-            writer.write("contents.$L = data;", binding.getMemberName());
-            //Not to generate non-eventstream payload shape again
-            return ListUtils.of();
         } else if (hasStreamingComponent) {
             // If payload is streaming, return raw low-level stream directly.
             writer.write("const data: any = output.body;");
@@ -1060,8 +1056,8 @@ public abstract class HttpBindingProtocolGenerator implements ProtocolGenerator 
             throw new CodegenException(String.format("Unexpected shape type bound to payload: `%s`",
                     target.getType()));
         }
-        writer.write("contents.$L = $L;", binding.getMemberName(), getOutputValue(context,
-                Location.PAYLOAD, "data", binding.getMember(), target));
+        // writer.write("contents.$L = $L;", binding.getMemberName(), getOutputValue(context,
+        //         Location.PAYLOAD, "data", binding.getMember(), target));
         return payloadBindings;
     }
 
@@ -1102,7 +1098,6 @@ public abstract class HttpBindingProtocolGenerator implements ProtocolGenerator 
                             target.getType()));
                 }
                 writer.write("return await $L;", deserFunctionBuilder.toString());
-
             });
         });
     }
@@ -1280,7 +1275,9 @@ public abstract class HttpBindingProtocolGenerator implements ProtocolGenerator 
             MemberShape member,
             Shape target
     ) {
-        if (target instanceof NumberShape) {
+        if (member.hasTrait(EventStreamTrait.class)) {
+            return dataSource;
+        } else if (target instanceof NumberShape) {
             return getNumberOutputParam(bindingType, dataSource, target);
         } else if (target instanceof BooleanShape) {
             return getBooleanOutputParam(bindingType, dataSource);
