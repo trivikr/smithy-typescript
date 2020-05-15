@@ -396,7 +396,6 @@ public abstract class HttpRpcProtocolGenerator implements ProtocolGenerator {
                 outputId -> {
                     // We only need to load the body and prepare a contents object if there is a response.
                     writer.write("const data: any = await parseBody(output.body, context)");
-                    writer.write("let contents: any = {};");
 
                     // If there's an output present, we know it's a structure.
                     StructureShape outputShape = context.getModel().expectShape(outputId).asStructureShape().get();
