@@ -862,6 +862,7 @@ public abstract class HttpBindingProtocolGenerator implements ProtocolGenerator 
             writer.openBlock("if (output.statusCode !== $L && output.statusCode >= 400) {", "}", trait.getCode(),
                     () -> writer.write("return $L(output, context);", errorMethodName));
 
+            List<HttpBinding> documentBindings = readResponseBody(context, operation, bindingIndex);
             // Start deserializing the response.
             writer.openBlock("const contents: $T = {", "};", outputType, () -> {
                 writer.write("$$metadata: deserializeMetadata(output),");
@@ -869,15 +870,9 @@ public abstract class HttpBindingProtocolGenerator implements ProtocolGenerator 
                 // Only set a type and the members if we have output.
                 operation.getOutput().ifPresent(outputId -> {
                     writer.write("__type: $S,", outputId.getName());
-                    // Set all the members to undefined to meet type constraints.
-                    StructureShape target = model.expectShape(outputId).asStructureShape().get();
-                    new TreeMap<>(target.getAllMembers())
-                            .forEach((memberName, memberShape) -> writer.write(
-                                    "$L: undefined,", memberName));
+                    readHeaders(context, operation, bindingIndex, "output");
                 });
             });
-            readHeaders(context, operation, bindingIndex, "output");
-            List<HttpBinding> documentBindings = readResponseBody(context, operation, bindingIndex);
             // Track all shapes bound to the document so their deserializers may be generated.
             documentBindings.forEach(binding -> {
                 Shape target = model.expectShape(binding.getMember().getTarget());
@@ -909,23 +904,19 @@ public abstract class HttpBindingProtocolGenerator implements ProtocolGenerator 
                        + "  context: __SerdeContext\n"
                        + "): Promise<$T> => {", "};",
                 errorDeserMethodName, outputName, errorSymbol, () -> {
-            writer.openBlock("const contents: $T = {", "};", errorSymbol, () -> {
+            List<HttpBinding> documentBindings = readErrorResponseBody(context, error, bindingIndex);
+            writer.openBlock("return {", "};", () -> {
                 writer.write("name: $S,", error.getId().getName());
                 writer.write("$$fault: $S,", error.getTrait(ErrorTrait.class).get().getValue());
                 writer.write("$$metadata: deserializeMetadata($L),", outputName);
-                // Set all the members to undefined to meet type constraints.
-                new TreeMap<>(error.getAllMembers())
-                        .forEach((memberName, memberShape) -> writer.write("$L: undefined,", memberName));
+                readHeaders(context, error, bindingIndex, outputName);
             });
 
-            readHeaders(context, error, bindingIndex, outputName);
-            List<HttpBinding> documentBindings = readErrorResponseBody(context, error, bindingIndex);
             // Track all shapes bound to the document so their deserializers may be generated.
             documentBindings.forEach(binding -> {
                 Shape target = model.expectShape(binding.getMember().getTarget());
                 deserializingDocumentShapes.add(target);
             });
-            writer.write("return contents;");
         });
 
         writer.write("");
@@ -963,41 +954,38 @@ public abstract class HttpBindingProtocolGenerator implements ProtocolGenerator 
         for (HttpBinding binding : bindingIndex.getResponseBindings(operationOrError, Location.HEADER)) {
             String memberName = symbolProvider.toMemberName(binding.getMember());
             String headerName = binding.getLocationName().toLowerCase(Locale.US);
-            writer.openBlock("if ($L.headers[$S] !== undefined) {", "}", outputName, headerName, () -> {
-                Shape target = model.expectShape(binding.getMember().getTarget());
-                String headerValue = getOutputValue(context, binding.getLocation(),
-                        outputName + ".headers['" + headerName + "']", binding.getMember(), target);
-                writer.write("contents.$L = $L;", memberName, headerValue);
-            });
+            Shape target = model.expectShape(binding.getMember().getTarget());
+            String headerValue = getOutputValue(context, binding.getLocation(),
+                    outputName + ".headers['" + headerName + "']", binding.getMember(), target);
+            writer.write("$L: ($L.headers[$S] !== undefined) ? $L: undefined,",
+                    memberName, outputName, headerName, headerValue);
         }
 
         // Handle loading up prefix headers.
         List<HttpBinding> prefixHeaderBindings =
-                bindingIndex.getResponseBindings(operationOrError, Location.PREFIX_HEADERS);
+                bindingIndex.getResponseBindings(operationOrError, Location.PREFIX_HEADERS);        
         if (!prefixHeaderBindings.isEmpty()) {
-            // Run through the headers one time, matching any prefix groups.
-            writer.openBlock("Object.keys($L.headers).forEach(header => {", "});", outputName, () -> {
-                for (HttpBinding binding : prefixHeaderBindings) {
-                    // Prepare a grab bag for these headers if necessary
-                    String memberName = symbolProvider.toMemberName(binding.getMember());
-                    writer.openBlock("if (contents.$L === undefined) {", "}", memberName, () -> {
-                        writer.write("contents.$L = {};", memberName);
-                    });
+            for (HttpBinding binding : prefixHeaderBindings) {
+                // Prepare a grab bag for these headers if necessary
+                String memberName = symbolProvider.toMemberName(binding.getMember());
+                writer.openBlock("$L: Object.keys($L.headers).reduce(" +
+                    "(acc: { [key: string]: string }, [header, value]: [string, string]) => {",
+                    "}, {}),", memberName, outputName, () -> {
+                        // Generate a single block for each group of lower-cased prefix headers.
+                        String headerLocation = binding.getLocationName().toLowerCase(Locale.US);
+                        writer.openBlock("if (header.startsWith($S)) {", "}", headerLocation, () -> {
+                            MapShape prefixMap = model.expectShape(binding.getMember().getTarget()).asMapShape().get();
+                            Shape target = model.expectShape(prefixMap.getValue().getTarget());
+                            String headerValue = getOutputValue(context, binding.getLocation(),
+                                    outputName + ".headers[header]", binding.getMember(), target);
 
-                    // Generate a single block for each group of lower-cased prefix headers.
-                    String headerLocation = binding.getLocationName().toLowerCase(Locale.US);
-                    writer.openBlock("if (header.startsWith($S)) {", "}", headerLocation, () -> {
-                        MapShape prefixMap = model.expectShape(binding.getMember().getTarget()).asMapShape().get();
-                        Shape target = model.expectShape(prefixMap.getValue().getTarget());
-                        String headerValue = getOutputValue(context, binding.getLocation(),
-                                outputName + ".headers[header]", binding.getMember(), target);
-
-                        // Extract the non-prefix portion as the key.
-                        writer.write("contents.$L[header.substring($L)] = $L;",
-                                memberName, headerLocation.length(), headerValue);
-                    });
-                }
-            });
+                            // Extract the non-prefix portion as the key.
+                            writer.write("acc[header.substring($L)] = $L;",
+                                    headerLocation.length(), headerValue);
+                        });
+                        writer.write("return acc;");
+                });
+            }
         }
     }
 
