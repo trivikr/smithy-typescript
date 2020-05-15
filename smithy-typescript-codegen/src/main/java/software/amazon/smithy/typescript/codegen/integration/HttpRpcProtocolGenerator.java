@@ -326,14 +326,16 @@ public abstract class HttpRpcProtocolGenerator implements ProtocolGenerator {
             });
 
             // Start deserializing the response.
-            readResponseBody(context, operation);
+            StructureShape outputShape = readResponseBody(context, operation);
 
             // Build the response with typing and metadata.
             writer.openBlock("const response: $T = {", "};", outputType, () -> {
                 writer.write("$$metadata: deserializeMetadata(output),");
                 operation.getOutput().ifPresent(outputId -> {
                     writer.write("__type: $S,", outputId.getName());
-                    writer.write("...contents,");
+                    if (outputShape != null) {
+                        deserializeOutputDocument(context, operation, outputShape);
+                    }
                 });
             });
             writer.write("return Promise.resolve(response);");
@@ -389,7 +391,7 @@ public abstract class HttpRpcProtocolGenerator implements ProtocolGenerator {
         writer.write("");
     }
 
-    private void readResponseBody(GenerationContext context, OperationShape operation) {
+    private StructureShape readResponseBody(GenerationContext context, OperationShape operation) {
         TypeScriptWriter writer = context.getWriter();
         OptionalUtils.ifPresentOrElse(
                 operation.getOutput(),
@@ -403,11 +405,12 @@ public abstract class HttpRpcProtocolGenerator implements ProtocolGenerator {
                     // Track output shapes so their deserializers may be generated.
                     deserializingDocumentShapes.add(outputShape);
 
-                    deserializeOutputDocument(context, operation, outputShape);
+                    return outputShape;
                 },
                 () -> {
                     // If there is no output, the body still needs to be collected so the process can exit.
                     writer.write("await collectBody(output.body, context);");
+                    return null;
                 });
     }
 
