@@ -326,16 +326,14 @@ public abstract class HttpRpcProtocolGenerator implements ProtocolGenerator {
             });
 
             // Start deserializing the response.
-            StructureShape outputShape = readResponseBody(context, operation);
+            readResponseBody(context, operation);
 
             // Build the response with typing and metadata.
             writer.openBlock("const response: $T = {", "};", outputType, () -> {
                 writer.write("$$metadata: deserializeMetadata(output),");
                 operation.getOutput().ifPresent(outputId -> {
                     writer.write("__type: $S,", outputId.getName());
-                    if (outputShape != null) {
-                        deserializeOutputDocument(context, operation, outputShape);
-                    }
+                    writer.write("...contents,");
                 });
             });
             writer.write("return Promise.resolve(response);");
@@ -391,13 +389,14 @@ public abstract class HttpRpcProtocolGenerator implements ProtocolGenerator {
         writer.write("");
     }
 
-    private StructureShape readResponseBody(GenerationContext context, OperationShape operation) {
+    private void readResponseBody(GenerationContext context, OperationShape operation) {
         TypeScriptWriter writer = context.getWriter();
         OptionalUtils.ifPresentOrElse(
                 operation.getOutput(),
                 outputId -> {
                     // We only need to load the body and prepare a contents object if there is a response.
                     writer.write("const data: any = await parseBody(output.body, context)");
+                    writer.write("let contents: any = {};");
 
                     // If there's an output present, we know it's a structure.
                     StructureShape outputShape = context.getModel().expectShape(outputId).asStructureShape().get();
@@ -405,12 +404,11 @@ public abstract class HttpRpcProtocolGenerator implements ProtocolGenerator {
                     // Track output shapes so their deserializers may be generated.
                     deserializingDocumentShapes.add(outputShape);
 
-                    return outputShape;
+                    deserializeOutputDocument(context, operation, outputShape);
                 },
                 () -> {
                     // If there is no output, the body still needs to be collected so the process can exit.
                     writer.write("await collectBody(output.body, context);");
-                    return null;
                 });
     }
 
