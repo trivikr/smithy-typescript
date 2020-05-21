@@ -9,10 +9,13 @@ service Example {
 operation GetFoo(GetFooInput)
 
 structure GetFooInput {
-    foo: UserMap,
+    fooStructure: User,
+    fooList: UserList,
+    fooMap: UserMap
+}
 
-    @sensitive
-    bar: String
+list UserList {
+    member: User
 }
 
 map UserMap {

@@ -73,7 +73,7 @@ final class StructuredMemberWriter {
     void writeFilterSensitiveLog(TypeScriptWriter writer, String objectParam) {
         writer.write("...$L,", objectParam);
         for (MemberShape member : members) {
-            if (isMemberOverwriteRequired(member)) {
+            if (StructuredMemberWriter.isMemberOverwriteRequired(model, member)) {
                 Shape memberTarget = model.expectShape(member.getTarget());
                 String memberName = getSanitizedMemberName(member);
                 String memberParam = String.format("%s.%s", objectParam, memberName);
@@ -196,45 +196,33 @@ final class StructuredMemberWriter {
     }
 
     /**
-     * Identifies if iteration is required on member.
+     * Identifies if member needs to be overwritten in filterSensitiveLog.
      *
-     * @param member a {@link MemberShape} to check for iteration required.
-     * @return Returns true if the iteration is required on member.
+     * @param member a {@link MemberShape} to check if overwrite is required.
+     * @return Returns true if the overwrite is required on member.
      */
-    private boolean isIterationRequired(MemberShape member) {
+    public static boolean isMemberOverwriteRequired(Model model, MemberShape member) {
         if (member.getMemberTrait(model, SensitiveTrait.class).isPresent()) {
             return true;
         }
-        
+
         Shape memberTarget = model.expectShape(member.getTarget());
         if (memberTarget instanceof StructureShape) {
             Collection<MemberShape> structureMemberList = ((StructureShape) memberTarget).getAllMembers().values();
             for (MemberShape structureMember: structureMemberList) {
-                if (isIterationRequired(structureMember)) {
+                if (isMemberOverwriteRequired(model, structureMember)) {
                     return true;
                 }
             }
             return false;
         } else if (memberTarget instanceof CollectionShape) {
             MemberShape collectionMember = ((CollectionShape) memberTarget).getMember();
-            return isIterationRequired(collectionMember);
+            return isMemberOverwriteRequired(model, collectionMember);
         } else if (memberTarget instanceof MapShape) {
             MemberShape mapMember = ((MapShape) memberTarget).getValue();
-            return isIterationRequired(mapMember);
+            return isMemberOverwriteRequired(model, mapMember);
         }
         return false;
-    }
-
-    /**
-     * Identifies if member needs to be overwritten in filterSensitiveLog.
-     *
-     * @param member a {@link MemberShape} to check if overwrite is required.
-     * @return Returns true if the overwrite is required on member.
-     */
-    private boolean isMemberOverwriteRequired(MemberShape member) {
-        return (
-            member.getMemberTrait(model, SensitiveTrait.class).isPresent() || isIterationRequired(member)
-        );
     }
 
     /**

@@ -9,7 +9,10 @@ service Example {
 operation GetFoo(GetFooInput)
 
 structure GetFooInput {
-    foo: UserList
+    foo: UserList,
+
+    @sensitive
+    bar: String
 }
 
 list UserList {
@@ -17,6 +20,6 @@ list UserList {
 }
 
 structure User {
-    username: String,
-    password: String
+    firstname: String,
+    lastname: String
 }

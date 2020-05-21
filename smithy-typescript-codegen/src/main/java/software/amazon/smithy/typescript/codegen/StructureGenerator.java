@@ -15,12 +15,14 @@
 
 package software.amazon.smithy.typescript.codegen;
 
+import java.util.Collection;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import software.amazon.smithy.codegen.core.Symbol;
 import software.amazon.smithy.codegen.core.SymbolProvider;
 import software.amazon.smithy.codegen.core.SymbolReference;
 import software.amazon.smithy.model.Model;
+import software.amazon.smithy.model.shapes.MemberShape;
 import software.amazon.smithy.model.shapes.StructureShape;
 import software.amazon.smithy.model.traits.ErrorTrait;
 
@@ -171,15 +173,23 @@ final class StructureGenerator implements Runnable {
         writer.addImport("SENSITIVE_STRING", "SENSITIVE_STRING", "@aws-sdk/smithy-client");
         Symbol symbol = symbolProvider.toSymbol(shape);
         writer.openBlock("export namespace $L {", "}", symbol.getName(), () -> {
-            String objectParam = "obj";
-            writer.openBlock("export const filterSensitiveLog = ($L: $L): any => ({", "})",
-                objectParam, symbol.getName(),
-                () -> {
-                    StructuredMemberWriter structuredMemberWriter = new StructuredMemberWriter(
-                        model, symbolProvider, shape.getAllMembers().values());
-                    structuredMemberWriter.writeFilterSensitiveLog(writer, objectParam);
+            Collection<MemberShape> members = shape.getAllMembers().values();
+
+            // Emit filterSensitiveLog only if at least one member to be overwritten
+            for (MemberShape member: members) {
+                if (StructuredMemberWriter.isMemberOverwriteRequired(model, member)) {
+                    String objectParam = "obj";
+                    writer.openBlock("export const filterSensitiveLog = ($L: $L): any => ({", "})",
+                        objectParam, symbol.getName(),
+                        () -> {
+                            StructuredMemberWriter structuredMemberWriter = new StructuredMemberWriter(
+                                model, symbolProvider, shape.getAllMembers().values());
+                            structuredMemberWriter.writeFilterSensitiveLog(writer, objectParam);
+                        }
+                    );
+                    break;
                 }
-            );
+            }
             writer.write("export const isa = (o: any): o is $L => __isa(o, $S);",
                 symbol.getName(), shape.getId().getName()
             );

@@ -44,6 +44,15 @@ public class StructureGeneratorTest {
     }
 
     @Test
+    public void skipsFilterSensitiveLogForNoSensitiveData() {
+        testStructureCodegen("test-service-without-sensitive-data.smithy",
+                                "export namespace GetFooInput {\n"
+                                + "  export const isa = (o: any): o is GetFooInput => "
+                                + "__isa(o, \"GetFooInput\");\n"
+                                + "}");
+    }
+
+    @Test
     public void filtersSensitiveSimpleShape() {
         testStructureCodegen("test-sensitive-simple-shape.smithy",
                                 "  export const filterSensitiveLog = (obj: GetFooInput): any => ({\n"
@@ -67,9 +76,13 @@ public class StructureGeneratorTest {
 
     @Test
     public void skipsFilterForStructureWithoutSensitiveData() {
+        // overwrite is not called for foo
         testStructureCodegen("test-structure-without-sensitive-data.smithy",
                                 "  export const filterSensitiveLog = (obj: GetFooInput): any => ({\n"
                                 + "    ...obj,\n"
+                                + "    ...(obj.bar && { bar:\n"
+                                + "      SENSITIVE_STRING\n"
+                                + "    }),\n"
                                 + "  })\n");
     }
 
@@ -100,9 +113,13 @@ public class StructureGeneratorTest {
 
     @Test
     public void skipsFilterForListWithoutSensitiveData() {
+        // overwrite is not called for foo
         testStructureCodegen("test-list-without-sensitive-data.smithy",
                                 "  export const filterSensitiveLog = (obj: GetFooInput): any => ({\n"
                                 + "    ...obj,\n"
+                                + "    ...(obj.bar && { bar:\n"
+                                + "      SENSITIVE_STRING\n"
+                                + "    }),\n"
                                 + "  })\n");
     }
 
@@ -135,10 +152,14 @@ public class StructureGeneratorTest {
 
     @Test
     public void skipsFilterForMapWithoutSensitiveData() {
+        // overwrite is not called for foo
         testStructureCodegen("test-map-without-sensitive-data.smithy",
-                            "  export const filterSensitiveLog = (obj: GetFooInput): any => ({\n"
-                            + "    ...obj,\n"
-                            + "  })\n");
+                                "  export const filterSensitiveLog = (obj: GetFooInput): any => ({\n"
+                                + "    ...obj,\n"
+                                + "    ...(obj.bar && { bar:\n"
+                                + "      SENSITIVE_STRING\n"
+                                + "    }),\n"
+                                + "  })\n");
     }
 
     @Test
@@ -180,9 +201,10 @@ public class StructureGeneratorTest {
 
         assertThat(contents, containsString("as __isa"));
         assertThat(contents, containsString("as __SmithyException"));
-        assertThat(contents, containsString("namespace Err {"));
-        assertThat(contents, containsString("  export const isa = (o: any): o is Err => "
-                                            + "__isa(o, \"Err\");\n"));
+        assertThat(contents, containsString("namespace Err {\n"
+                                            + "  export const isa = (o: any): o is Err => "
+                                            + "__isa(o, \"Err\");\n"
+                                            + "}"));
     }
 
     @Test
@@ -200,9 +222,10 @@ public class StructureGeneratorTest {
         assertThat(output, containsString("export interface Bar {"));
         assertThat(output, containsString("__type?: \"Bar\";"));
         assertThat(output, containsString("foo?: string;"));
-        assertThat(output, containsString("export namespace Bar {"));
-        assertThat(output, containsString(
-                "export const isa = (o: any): o is Bar => __isa(o, \"Bar\");"));
+        assertThat(output, containsString("export namespace Bar {\n"
+                + "  export const isa = (o: any): o is Bar => "
+                + "__isa(o, \"Bar\");\n"
+                + "}"));
     }
 
     private StructureShape createNonErrorStructure() {
