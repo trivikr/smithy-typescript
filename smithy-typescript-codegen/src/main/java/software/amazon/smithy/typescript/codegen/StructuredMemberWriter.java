@@ -202,9 +202,19 @@ final class StructuredMemberWriter {
      * @return Returns true if the iteration is required on member.
      */
     private boolean isIterationRequired(MemberShape member) {
+        if (member.getMemberTrait(model, SensitiveTrait.class).isPresent()) {
+            return true;
+        }
+        
         Shape memberTarget = model.expectShape(member.getTarget());
         if (memberTarget instanceof StructureShape) {
-            return true;
+            Collection<MemberShape> structureMemberList = ((StructureShape) memberTarget).getAllMembers().values();
+            for (MemberShape structureMember: structureMemberList) {
+                if (isIterationRequired(structureMember)) {
+                    return true;
+                }
+            }
+            return false;
         } else if (memberTarget instanceof CollectionShape) {
             MemberShape collectionMember = ((CollectionShape) memberTarget).getMember();
             return isIterationRequired(collectionMember);

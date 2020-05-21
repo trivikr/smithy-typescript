@@ -66,6 +66,14 @@ public class StructureGeneratorTest {
     }
 
     @Test
+    public void skipsFilterForStructureWithoutSensitiveData() {
+        testStructureCodegen("test-structure-without-sensitive-data.smithy",
+                                "  export const filterSensitiveLog = (obj: GetFooInput): any => ({\n"
+                                + "    ...obj,\n"
+                                + "  })\n");
+    }
+
+    @Test
     public void filtersSensitiveStructure() {
         testStructureCodegen("test-sensitive-structure.smithy",
                                 "  export const filterSensitiveLog = (obj: GetFooInput): any => ({\n"
@@ -87,6 +95,14 @@ public class StructureGeneratorTest {
                                 + "        User.filterSensitiveLog(item)\n"
                                 + "      )\n"
                                 + "    }),\n"
+                                + "  })\n");
+    }
+
+    @Test
+    public void skipsFilterForListWithoutSensitiveData() {
+        testStructureCodegen("test-list-without-sensitive-data.smithy",
+                                "  export const filterSensitiveLog = (obj: GetFooInput): any => ({\n"
+                                + "    ...obj,\n"
                                 + "  })\n");
     }
 
@@ -114,6 +130,14 @@ public class StructureGeneratorTest {
                             + "        ,\n"
                             + "      }), {})\n"
                             + "    }),\n"
+                            + "  })\n");
+    }
+
+    @Test
+    public void skipsFilterForMapWithoutSensitiveData() {
+        testStructureCodegen("test-map-without-sensitive-data.smithy",
+                            "  export const filterSensitiveLog = (obj: GetFooInput): any => ({\n"
+                            + "    ...obj,\n"
                             + "  })\n");
     }
 
