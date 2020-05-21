@@ -82,7 +82,7 @@ final class StructuredMemberWriter {
                         // member is Sensitive, hide the value.
                         writer.write("SENSITIVE_STRING");
                     } else if (memberTarget instanceof StructureShape) {
-                        writeStructureFilterSensitiveLog(writer, memberTarget, memberParam);
+                        writeStructureFilterSensitiveLog(writer, member, memberParam);
                     } else if (memberTarget instanceof CollectionShape) {
                         MemberShape collectionMember = ((CollectionShape) memberTarget).getMember();
                         writeCollectionFilterSensitiveLog(writer, collectionMember, memberParam);
@@ -100,16 +100,16 @@ final class StructuredMemberWriter {
      */
     private void writeStructureFilterSensitiveLog(
             TypeScriptWriter writer,
-            Shape structureTarget,
+            MemberShape structureMember,
             String structureParam
     ) {
-        if (structureTarget.getMemberTrait(model, SensitiveTrait.class).isPresent()) {
+        if (structureMember.getMemberTrait(model, SensitiveTrait.class).isPresent()) {
             // member is Sensitive, hide the value.
             writer.write("SENSITIVE_STRING");
             return;
         }
         // Call filterSensitiveLog on Structure.
-        writer.write("$T.filterSensitiveLog($L)", symbolProvider.toSymbol(structureTarget), structureParam);
+        writer.write("$T.filterSensitiveLog($L)", symbolProvider.toSymbol(structureMember), structureParam);
     }
 
     /**
@@ -131,7 +131,7 @@ final class StructuredMemberWriter {
             Shape memberTarget = model.expectShape(collectionMember.getTarget());
             writer.write("$L => ", itemParam);
             if (memberTarget instanceof StructureShape) {
-                writeStructureFilterSensitiveLog(writer, memberTarget, itemParam);
+                writeStructureFilterSensitiveLog(writer, collectionMember, itemParam);
             } else if (memberTarget instanceof CollectionShape) {
                 MemberShape nestedCollectionMember = ((CollectionShape) memberTarget).getMember();
                 writeCollectionFilterSensitiveLog(writer, nestedCollectionMember, itemParam);
@@ -172,7 +172,7 @@ final class StructuredMemberWriter {
                 Shape memberTarget = model.expectShape(mapMember.getTarget());
                 writer.openBlock("[$L]: ", ",", keyParam, () -> {
                     if (memberTarget instanceof StructureShape) {
-                        writeStructureFilterSensitiveLog(writer, memberTarget, valueParam);
+                        writeStructureFilterSensitiveLog(writer, mapMember, valueParam);
                     } else if (memberTarget instanceof CollectionShape) {
                         MemberShape collectionMember = ((CollectionShape) memberTarget).getMember();
                         writeCollectionFilterSensitiveLog(writer, collectionMember, valueParam);
