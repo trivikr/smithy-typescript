@@ -55,6 +55,14 @@ public class StructureGeneratorTest {
     }
 
     @Test
+    public void skipsFilterForInsensitiveSimpleShape() {
+        testStructureCodegen("test-insensitive-simple-shape.smithy",
+                                "  export const filterSensitiveLog = (obj: GetFooInput): any => ({\n"
+                                + "    ...obj,\n"
+                                + "  })\n");
+    }
+
+    @Test
     public void callsFilterForStructureWithSensitiveData() {
         testStructureCodegen("test-structure-with-sensitive-data.smithy",
                                 "  export const filterSensitiveLog = (obj: GetFooInput): any => ({\n"
@@ -84,6 +92,14 @@ public class StructureGeneratorTest {
                                 + "    ...(obj.foo && { foo:\n"
                                 + "      SENSITIVE_STRING\n"
                                 + "    }),\n"
+                                + "  })\n");
+    }
+
+    @Test
+    public void skipsFilterForInsensitiveStructure() {
+        testStructureCodegen("test-insensitive-structure.smithy",
+                                "  export const filterSensitiveLog = (obj: GetFooInput): any => ({\n"
+                                + "    ...obj,\n"
                                 + "  })\n");
     }
 
