@@ -66,7 +66,8 @@ class CodegenVisitor extends ShapeVisitor.Default<Void> {
     private static final Map<String, String> STATIC_FILE_COPIES = MapUtils.of(
             "jest.config.js", "jest.config.js",
             "tsconfig.es.json", "tsconfig.es.json",
-            "tsconfig.json", "tsconfig.json"
+            "tsconfig.json", "tsconfig.json",
+            "typings.d.ts", "typings.d.ts"
     );
 
     private final TypeScriptSettings settings;
