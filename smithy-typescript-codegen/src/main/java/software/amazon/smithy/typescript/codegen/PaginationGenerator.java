@@ -38,6 +38,7 @@ final class PaginationGenerator implements Runnable {
     private final Symbol operationSymbol;
     private final Symbol inputSymbol;
     private final Symbol outputSymbol;
+    private final Symbol paginationTokenSymbol;
 
     private final String operationName;
     private final String methodName;
@@ -72,6 +73,8 @@ final class PaginationGenerator implements Runnable {
         this.paginatedInfo = paginationInfo.orElseThrow(() -> {
             return new CodegenException("Expected Paginator to have pagination information.");
         });
+
+        this.paginationTokenSymbol = symbolProvider.toSymbol(this.paginatedInfo.getInputTokenMember());
     }
 
     @Override
@@ -86,6 +89,9 @@ final class PaginationGenerator implements Runnable {
         writer.addImport(outputSymbol.getName(),
                 outputSymbol.getName(),
                 outputSymbol.getNamespace());
+        writer.addImport(paginationTokenSymbol.getName(),
+                paginationTokenSymbol.getName(),
+                paginationTokenSymbol.getNamespace());
         String nonModularLocation = serviceSymbol.getNamespace()
                 .replace(serviceSymbol.getName(), nonModularServiceName);
         writer.addImport(nonModularServiceName,
@@ -137,7 +143,8 @@ final class PaginationGenerator implements Runnable {
         writer.openBlock(
                 "export async function* paginate$L(config: $L, input: $L, ...additionalArguments: any): Paginator<$L>{",
                 "}",  operationName, paginationType, inputTypeName, outputTypeName, () -> {
-            writer.write("let token: string | undefined = config.startingToken || undefined;");
+            writer.write("let token: $L | undefined = config.startingToken || undefined;",
+                    paginationTokenSymbol.getName());
 
             writer.write("let hasNext = true;");
             writer.write("let page: $L;", outputTypeName);
