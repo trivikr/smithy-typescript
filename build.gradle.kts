@@ -19,7 +19,7 @@ plugins {
     signing
     checkstyle
     jacoco
-    id("com.github.spotbugs") version "1.6.10"
+    id("com.github.spotbugs") version "4.6.0"
     id("io.codearte.nexus-staging") version "0.21.0"
 }
 
@@ -87,10 +87,10 @@ subprojects {
 
         // Apply junit 5 and hamcrest test dependencies to all java projects.
         dependencies {
-            testCompile("org.junit.jupiter:junit-jupiter-api:5.4.0")
-            testRuntime("org.junit.jupiter:junit-jupiter-engine:5.4.0")
-            testCompile("org.junit.jupiter:junit-jupiter-params:5.4.0")
-            testCompile("org.hamcrest:hamcrest:2.1")
+            testImplementation("org.junit.jupiter:junit-jupiter-api:5.4.0")
+            testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.4.0")
+            testImplementation("org.junit.jupiter:junit-jupiter-params:5.4.0")
+            testImplementation("org.hamcrest:hamcrest:2.1")
         }
 
         // Reusable license copySpec
@@ -247,7 +247,7 @@ subprojects {
         // Configure the bug filter for spotbugs.
         tasks.withType<com.github.spotbugs.SpotBugsTask> {
             effort = "max"
-            excludeFilterConfig = project.resources.text.fromFile("${project.rootDir}/config/spotbugs/filter.xml")
+            excludeFilter = file("${project.rootDir}/config/spotbugs/filter.xml")
         }
     }
 }
