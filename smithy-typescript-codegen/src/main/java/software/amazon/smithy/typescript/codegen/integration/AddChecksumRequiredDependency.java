@@ -86,11 +86,6 @@ public final class AddChecksumRequiredDependency implements TypeScriptIntegratio
         //         + "that computes SHA1 hashes.\n"
         //         + "@internal");
         // writer.write("sha1?: __HashConstructor;\n");
-
-        writer.writeDocs("A constructor for a class implementing the {@link __Hash} interface \n"
-                + "that computes SHA256 hashes.\n"
-                + "@internal");
-        writer.write("sha256?: __HashConstructor;\n");
     }
 
     @Override
