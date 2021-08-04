@@ -62,10 +62,35 @@ public final class AddChecksumRequiredDependency implements TypeScriptIntegratio
 
         writer.addImport("Hash", "__Hash", "@aws-sdk/types");
         writer.addImport("HashConstructor", "__HashConstructor", "@aws-sdk/types");
+
         writer.writeDocs("A constructor for a class implementing the {@link __Hash} interface \n"
                 + "that computes MD5 hashes.\n"
                 + "@internal");
         writer.write("md5?: __HashConstructor;\n");
+
+        writer.writeDocs("A constructor for a class implementing the {@link __Hash} interface \n"
+                + "that computes CRC32 hashes.\n"
+                + "@internal");
+        writer.write("crc32?: __HashConstructor;\n");
+
+        // Enable CRC32C when it's published in aws-sdk-js-crypto-helpers
+        // Refs: https://github.com/aws/aws-sdk-js-crypto-helpers/issues/200
+        // writer.writeDocs("A constructor for a class implementing the {@link __Hash} interface \n"
+        //         + "that computes CRC32C hashes.\n"
+        //         + "@internal");
+        // writer.write("crc32c?: __HashConstructor;\n");
+
+        // Enable SHA1 when it's published in aws-sdk-js-crypto-helpers
+        // Refs: https://github.com/aws/aws-sdk-js-crypto-helpers/issues/202
+        // writer.writeDocs("A constructor for a class implementing the {@link __Hash} interface \n"
+        //         + "that computes SHA1 hashes.\n"
+        //         + "@internal");
+        // writer.write("sha1?: __HashConstructor;\n");
+
+        writer.writeDocs("A constructor for a class implementing the {@link __Hash} interface \n"
+                + "that computes SHA256 hashes.\n"
+                + "@internal");
+        writer.write("sha256?: __HashConstructor;\n");
     }
 
     @Override
