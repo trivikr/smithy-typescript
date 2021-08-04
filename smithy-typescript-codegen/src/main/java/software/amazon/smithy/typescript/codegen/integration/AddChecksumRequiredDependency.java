@@ -118,7 +118,16 @@ public final class AddChecksumRequiredDependency implements TypeScriptIntegratio
                             writer.addImport("HashConstructor", "__HashConstructor",
                                     TypeScriptDependency.AWS_SDK_TYPES.packageName);
                             writer.write("Hash.bind(null, \"md5\")");
-                    });
+                    }
+                    // Enable SHA1 when it's published in aws-sdk-js-crypto-helpers
+                    // Refs: https://github.com/aws/aws-sdk-js-crypto-helpers/issues/202
+                    // "sha1", writer -> {
+                    //     writer.addDependency(TypeScriptDependency.AWS_SDK_TYPES);
+                    //     writer.addImport("HashConstructor", "__HashConstructor",
+                    //             TypeScriptDependency.AWS_SDK_TYPES.packageName);
+                    //     writer.write("Hash.bind(null, \"sha1\")");
+                    // }
+                );
             case BROWSER:
                 return MapUtils.of(
                     "streamHasher", writer -> {
@@ -131,7 +140,30 @@ public final class AddChecksumRequiredDependency implements TypeScriptIntegratio
                         writer.addDependency(TypeScriptDependency.MD5_BROWSER);
                         writer.addImport("Md5", "Md5", TypeScriptDependency.MD5_BROWSER.packageName);
                         writer.write("Md5");
-                    });
+                    }
+                    // Enable SHA1 when it's published in aws-sdk-js-crypto-helpers
+                    // Refs: https://github.com/aws/aws-sdk-js-crypto-helpers/issues/202
+                    //  "sha1", writer -> {
+                    //     writer.addDependency(TypeScriptDependency.AWS_CRYPTO_SHA1);
+                    //     writer.addImport("Sha1", "Sha1", TypeScriptDependency.AWS_CRYPTO_SHA1.packageName);
+                    //     writer.write("Sha1");
+                    // }
+                );
+            case SHARED:
+                return MapUtils.of(
+                    "crc32", writer -> {
+                        writer.addDependency(TypeScriptDependency.AWS_CRYPTO_CRC32);
+                        writer.addImport("Crc32", "Crc32", TypeScriptDependency.AWS_CRYPTO_CRC32.packageName);
+                        writer.write("Crc32");
+                    }
+                    // Enable CRC32C when it's published in aws-sdk-js-crypto-helpers
+                    // Refs: https://github.com/aws/aws-sdk-js-crypto-helpers/issues/200
+                    // "crc32c", writer -> {
+                    //     writer.addDependency(TypeScriptDependency.AWS_CRYPTO_CRC32C);
+                    //     writer.addImport("Crc32c", "Crc32c", TypeScriptDependency.AWS_CRYPTO_CRC32C.packageName);
+                    //     writer.write("Crc32c");
+                    // }
+                );
             default:
                 return Collections.emptyMap();
         }
@@ -147,7 +179,6 @@ public final class AddChecksumRequiredDependency implements TypeScriptIntegratio
                         .build()
         );
     }
-
 
     // return true if operation shape is decorated with `httpChecksumRequired` trait.
     private static boolean hasChecksumRequiredTrait(Model model, ServiceShape service, OperationShape operation) {
