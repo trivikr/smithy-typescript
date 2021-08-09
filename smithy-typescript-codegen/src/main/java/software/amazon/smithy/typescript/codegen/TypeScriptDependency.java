@@ -74,15 +74,16 @@ public enum TypeScriptDependency implements SymbolDependencyContainer {
     STREAM_HASHER_NODE("dependencies", "@aws-sdk/hash-stream-node", false),
     STREAM_HASHER_BROWSER("dependencies", "@aws-sdk/hash-blob-browser", false),
     BODY_CHECKSUM("dependencies", "@aws-sdk/middleware-apply-body-checksum", false),
-    AWS_CRYPTO_CRC32("dependencies", "@aws-crypto/crc32", "1.0.0", false),
-
-    // Enable CRC32C when it's published in aws-sdk-js-crypto-helpers
-    // Refs: https://github.com/aws/aws-sdk-js-crypto-helpers/issues/200
+    // Replace once implementations are published in aws-sdk-js-crypto-helpers
+    // - CRC32: https://github.com/aws/aws-sdk-js-crypto-helpers/issues/204
+    // - CRC32C: https://github.com/aws/aws-sdk-js-crypto-helpers/issues/200
+    // - SHA1: https://github.com/aws/aws-sdk-js-crypto-helpers/issues/206
+    AWS_CRYPTO_CRC32("dependencies", "@aws-sdk/temp-crypto", "3.0.0", false),
+    // AWS_CRYPTO_CRC32("dependencies", "@aws-crypto/crc32", "1.0.0", false),
+    AWS_CRYPTO_CRC32C("dependencies", "@aws-sdk/temp-crypto", "3.0.0", false),
     // AWS_CRYPTO_CRC32C("dependencies", "@aws-crypto/crc32c", "1.0.0", false),
-
-    // Enable SHA1 when it's published in aws-sdk-js-crypto-helpers
-    // Refs: https://github.com/aws/aws-sdk-js-crypto-helpers/issues/202
-    // AWS_CRYPTO_SHA1("dependencies", "@aws-crypto/sha1", "1.0.0", false),
+    AWS_CRYPTO_SHA1_BROWSER("dependencies", "@aws-sdk/temp-crypto", "3.0.0", false),
+    // AWS_CRYPTO_SHA1_BROWSER("dependencies", "@aws-sdk/sha1-browser", "3.0.0", false),
 
     // Conditionally added when using an HTTP application protocol.
     AWS_SDK_PROTOCOL_HTTP("dependencies", "@aws-sdk/protocol-http", false),
